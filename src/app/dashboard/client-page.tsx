@@ -35,6 +35,7 @@ const citationStyles = [
   'Chicago 17th Edition',
   'Harvard',
   'Vancouver',
+  'IEEE',
 ]
 
 type Step = 'upload' | 'references' | 'style' | 'result'
