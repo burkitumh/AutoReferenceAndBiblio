@@ -53,16 +53,21 @@ export function DashboardClientPage() {
     const file = e.target.files?.[0]
     if (file) {
       if (file.type === 'application/pdf' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-        setDocumentFile(file)
-        // In a real app, we would parse the file content.
-        // For this demo, we'll just use some placeholder text.
         const reader = new FileReader();
-        reader.onload = async (e) => {
-            const text = e.target?.result;
-            // For docx, you'd need a library like mammoth.js to extract text.
-            // For now, we'll just simulate it.
+        reader.onload = async (event) => {
+            const text = event.target?.result as string;
+            // For this demo, we'll just use some placeholder text based on the file name.
             setDocumentText(`This is a mock content of the uploaded document: ${file.name}. It contains some [1] unformatted citations that need fixing.`);
+            setDocumentFile(file);
         };
+        reader.onerror = (error) => {
+            console.error("File reading error:", error);
+            toast({
+              variant: 'destructive',
+              title: 'File Read Error',
+              description: 'Could not read the uploaded file.',
+            })
+        }
         reader.readAsText(file);
         
       } else {
@@ -96,13 +101,14 @@ export function DashboardClientPage() {
       setStep('result')
     } catch (error: any) {
       console.error(error);
-      if (error.message.includes('API key not valid')) {
+      // Check if MOCK_AI is not 'true' and the error is an API key error
+      if (process.env.NEXT_PUBLIC_MOCK_AI !== 'true' && error.message.includes('API key not valid')) {
         setApiError('Your Google AI API key is not valid. Please check your .env file.');
       } else {
          toast({
             variant: 'destructive',
             title: 'An Error Occurred',
-            description: 'Failed to reformat the document. Please try again.',
+            description: error.message || 'Failed to reformat the document. Please try again.',
         })
       }
     } finally {
