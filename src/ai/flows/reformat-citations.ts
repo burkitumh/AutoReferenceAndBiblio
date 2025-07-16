@@ -33,6 +33,13 @@ const ReformatCitationsOutputSchema = z.object({
 export type ReformatCitationsOutput = z.infer<typeof ReformatCitationsOutputSchema>;
 
 export async function reformatCitations(input: ReformatCitationsInput): Promise<ReformatCitationsOutput> {
+  // If mock mode is enabled, return a mock response to allow UI testing without an API key.
+  if (process.env.MOCK_AI === 'true') {
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
+    return {
+      reformattedDocument: `${input.documentText}\n\nThis is a mock reformatted document using the ${input.selectedCitationStyle} style. The bibliography would be here.`
+    };
+  }
   return reformatCitationsFlow(input);
 }
 
