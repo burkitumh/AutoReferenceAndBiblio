@@ -22,6 +22,8 @@ import {
 } from '@/components/ui/select'
 import { ArrowLeft, FileUp, Loader2, Sparkles, Download, RefreshCw } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { Document, Packer, Paragraph } from 'docx'
+import { saveAs } from 'file-saver'
 
 async function mockReformat(data: any) {
   console.log('Reformatting with data:', data)
@@ -104,6 +106,19 @@ export function DashboardClientPage() {
     setReformattedText('')
   }
   
+  const handleDownload = () => {
+    const paragraphs = reformattedText.split('\n').map(text => new Paragraph({ text }));
+    const doc = new Document({
+      sections: [{
+        children: paragraphs,
+      }],
+    });
+
+    Packer.toBlob(doc).then(blob => {
+      saveAs(blob, "reformatted-document.docx");
+    });
+  }
+
   const renderStep = () => {
     switch (step) {
       case 'upload':
@@ -233,7 +248,7 @@ export function DashboardClientPage() {
               <Button variant="outline" onClick={startOver}>
                 <RefreshCw className="mr-2 h-4 w-4" /> Start Over
               </Button>
-              <Button>
+              <Button onClick={handleDownload}>
                 <Download className="mr-2 h-4 w-4" /> Download .docx
               </Button>
             </CardFooter>
