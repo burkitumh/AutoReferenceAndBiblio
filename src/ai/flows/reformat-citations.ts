@@ -42,21 +42,20 @@ const reformatCitationsPrompt = ai.definePrompt({
   output: {schema: ReformatCitationsOutputSchema},
   prompt: `You are an expert in academic writing and citation formatting.
 
-  Your task is to reformat the in-text citations and bibliography of a given document according to a specified citation style.
-  You need to understand the intricacies of various citation styles and apply them accurately to the document.
-  Ensure that the reformatted document adheres to all the guidelines of the selected citation style, including the format of in-text citations, the order of information in bibliography entries, and the overall layout of the references section.
-  In-text citations should also be added as proper citation fields that automatically update in Microsoft Word.
+Your task is to take the provided document text, reformat the in-text citations and generate a bibliography at the end, according to the specified citation style.
+You must return the *entire document*, including the original text, with the citations and bibliography correctly formatted.
+In-text citations should also be added as proper citation fields that automatically update in Microsoft Word.
 
-  Here is the document text:
-  {{{documentText}}}
+Here is the document text:
+{{{documentText}}}
 
-  Here is the selected citation style:
-  {{{selectedCitationStyle}}}
+Here is the selected citation style:
+{{{selectedCitationStyle}}}
 
-  Here are the detected references in Zotero/Mendeley format:
-  {{{detectedReferences}}}
+Here are the detected references in Zotero/Mendeley format. Use these to create the bibliography and format the in-text citations:
+{{{detectedReferences}}}
 
-  Please provide the reformatted document with correctly formatted in-text citations and bibliography.
+Please provide the full, reformatted document with correctly formatted in-text citations and a bibliography at the end.
   `,
 });
 

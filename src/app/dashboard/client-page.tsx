@@ -24,12 +24,7 @@ import { ArrowLeft, FileUp, Loader2, Sparkles, Download, RefreshCw } from 'lucid
 import { useToast } from '@/hooks/use-toast'
 import { Document, Packer, Paragraph } from 'docx'
 import { saveAs } from 'file-saver'
-
-async function mockReformat(data: any) {
-  console.log('Reformatting with data:', data)
-  await new Promise(resolve => setTimeout(resolve, 2000))
-  return `This is the reformatted document text based on the ${data.style} style. It includes properly formatted citations like (Author, Year) and a full bibliography at the end. The AI has processed the original text and the provided references.\n\nReferences\n1. Author, A. (Year). Title of work. Publisher.`
-}
+import { reformatCitations } from '@/ai/flows/reformat-citations'
 
 const citationStyles = [
   'APA 7th Edition',
@@ -57,7 +52,17 @@ export function DashboardClientPage() {
     if (file) {
       if (file.type === 'application/pdf' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
         setDocumentFile(file)
-        setDocumentText(`This is the content of the uploaded document: ${file.name}. It contains some [1] unformatted citations.`)
+        // In a real app, we would parse the file content.
+        // For this demo, we'll just use some placeholder text.
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const text = e.target?.result;
+            // For docx, you'd need a library like mammoth.js to extract text.
+            // For now, we'll just simulate it.
+            setDocumentText(`This is a mock content of the uploaded document: ${file.name}. It contains some [1] unformatted citations that need fixing.`);
+        };
+        reader.readAsText(file);
+        
       } else {
         toast({
           variant: 'destructive',
@@ -79,14 +84,15 @@ export function DashboardClientPage() {
     }
     setIsLoading(true)
     try {
-      const result = await mockReformat({
-        documentText,
-        referencesText,
-        style: selectedStyle,
+      const result = await reformatCitations({
+        documentText: documentText,
+        detectedReferences: referencesText,
+        selectedCitationStyle: selectedStyle,
       })
-      setReformattedText(result)
+      setReformattedText(result.reformattedDocument)
       setStep('result')
     } catch (error) {
+        console.error(error);
       toast({
         variant: 'destructive',
         title: 'An Error Occurred',
@@ -107,9 +113,13 @@ export function DashboardClientPage() {
   }
   
   const handleDownload = () => {
-    const paragraphs = reformattedText.split('\n').map(text => new Paragraph({ text }));
+    const paragraphs = reformattedText.split('\n\n').map(text => new Paragraph({ 
+        children: text.split('\n').map(line => new (require('docx').TextRun)(line))
+    }));
+    
     const doc = new Document({
       sections: [{
+        properties: {},
         children: paragraphs,
       }],
     });
