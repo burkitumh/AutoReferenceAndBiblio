@@ -20,9 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ArrowLeft, FileUp, Loader2, Sparkles, Download, RefreshCw } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { ArrowLeft, FileUp, Loader2, Sparkles, Download, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { Document, Packer, Paragraph } from 'docx'
+import { Document, Packer, Paragraph, TextRun } from 'docx'
 import { saveAs } from 'file-saver'
 import { reformatCitations } from '@/ai/flows/reformat-citations'
 
@@ -45,6 +46,7 @@ export function DashboardClientPage() {
   const [referencesText, setReferencesText] = useState('')
   const [selectedStyle, setSelectedStyle] = useState('')
   const [reformattedText, setReformattedText] = useState('')
+  const [apiError, setApiError] = useState<string | null>(null);
   const { toast } = useToast()
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,6 +85,7 @@ export function DashboardClientPage() {
       return
     }
     setIsLoading(true)
+    setApiError(null);
     try {
       const result = await reformatCitations({
         documentText: documentText,
@@ -91,13 +94,17 @@ export function DashboardClientPage() {
       })
       setReformattedText(result.reformattedDocument)
       setStep('result')
-    } catch (error) {
-        console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'An Error Occurred',
-        description: 'Failed to reformat the document. Please try again.',
-      })
+    } catch (error: any) {
+      console.error(error);
+      if (error.message.includes('API key not valid')) {
+        setApiError('Your Google AI API key is not valid. Please check your .env file.');
+      } else {
+         toast({
+            variant: 'destructive',
+            title: 'An Error Occurred',
+            description: 'Failed to reformat the document. Please try again.',
+        })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -110,11 +117,12 @@ export function DashboardClientPage() {
     setReferencesText('')
     setSelectedStyle('')
     setReformattedText('')
+    setApiError(null)
   }
   
   const handleDownload = () => {
     const paragraphs = reformattedText.split('\n\n').map(text => new Paragraph({ 
-        children: text.split('\n').map(line => new (require('docx').TextRun)(line))
+        children: text.split('\n').map(line => new TextRun(line))
     }));
     
     const doc = new Document({
@@ -202,6 +210,13 @@ export function DashboardClientPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {apiError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>API Key Error</AlertTitle>
+                  <AlertDescription>{apiError}</AlertDescription>
+                </Alert>
+              )}
               <Select onValueChange={setSelectedStyle} value={selectedStyle}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a style" />
