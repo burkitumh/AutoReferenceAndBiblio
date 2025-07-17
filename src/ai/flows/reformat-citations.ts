@@ -36,7 +36,7 @@ export async function reformatCitations(input: ReformatCitationsInput): Promise<
   // If mock mode is enabled, return a mock response to allow UI testing without an API key.
   if (process.env.MOCK_AI === 'true') {
     await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
-    const mockBibliography = `\n\nBibliography\n\n[1] Doe, J. (2024). A Mock Paper on Everything. Mock Journal of Testing, 1(1), 1-10. (Formatted in ${input.selectedCitationStyle} style).`
+    const mockBibliography = `\n\nBibliography\n(Formatted in ${input.selectedCitationStyle} style)\n\n${input.detectedReferences}`;
     return {
       reformattedDocument: `${input.documentText}${mockBibliography}`
     };
