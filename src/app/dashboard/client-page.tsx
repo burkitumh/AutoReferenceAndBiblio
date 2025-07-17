@@ -53,22 +53,10 @@ export function DashboardClientPage() {
     const file = e.target.files?.[0]
     if (file) {
       if (file.type === 'application/pdf' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            const text = event.target?.result as string;
-            // For this demo, we'll just use some placeholder text based on the file name.
-            setDocumentText(`This is a mock content of the uploaded document: ${file.name}. It contains some [1] unformatted citations that need fixing.`);
-            setDocumentFile(file);
-        };
-        reader.onerror = (error) => {
-            console.error("File reading error:", error);
-            toast({
-              variant: 'destructive',
-              title: 'File Read Error',
-              description: 'Could not read the uploaded file.',
-            })
-        }
-        reader.readAsText(file);
+        // For this demo, we'll just use some placeholder text based on the file name.
+        // A real implementation would require a library to parse .docx or .pdf.
+        setDocumentText(`This is a mock content of the uploaded document: ${file.name}. It contains some [1] unformatted citations that need fixing.`);
+        setDocumentFile(file);
         
       } else {
         toast({
