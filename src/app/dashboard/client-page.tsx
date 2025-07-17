@@ -25,6 +25,7 @@ import { ArrowLeft, FileUp, Loader2, Sparkles, Download, RefreshCw, AlertTriangl
 import { useToast } from '@/hooks/use-toast'
 import { Document, Packer, Paragraph, TextRun } from 'docx'
 import { saveAs } from 'file-saver'
+import mammoth from "mammoth";
 import { reformatCitations } from '@/ai/flows/reformat-citations'
 
 const citationStyles = [
@@ -50,23 +51,43 @@ export function DashboardClientPage() {
   const { toast } = useToast()
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      if (file.type === 'application/pdf' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-        // For this demo, we'll just use some placeholder text based on the file name.
-        // A real implementation would require a library to parse .docx or .pdf.
-        setDocumentText(`This is a mock content of the uploaded document: ${file.name}. It contains some [1] unformatted citations that need fixing.`);
-        setDocumentFile(file);
-        
+      if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          const arrayBuffer = event.target?.result as ArrayBuffer;
+          if (arrayBuffer) {
+            try {
+              const result = await mammoth.extractRawText({ arrayBuffer });
+              setDocumentText(result.value);
+              setDocumentFile(file);
+            } catch (error) {
+              console.error('Error reading docx file:', error);
+              toast({
+                variant: 'destructive',
+                title: 'Error Reading File',
+                description: 'Could not read the content of the .docx file.',
+              });
+            }
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else if (file.type === 'application/pdf') {
+         toast({
+          variant: 'destructive',
+          title: 'PDFs Not Supported Yet',
+          description: 'Sorry, we are still working on PDF support. Please upload a .docx file.',
+        })
       } else {
         toast({
           variant: 'destructive',
           title: 'Invalid File Type',
-          description: 'Please upload a .docx or .pdf file.',
-        })
+          description: 'Please upload a .docx file.',
+        });
       }
     }
-  }
+  };
 
   const handleReformat = async () => {
     if (!selectedStyle) {
@@ -139,7 +160,7 @@ export function DashboardClientPage() {
             <CardHeader>
               <CardTitle>Step 1: Upload Your Document</CardTitle>
               <CardDescription>
-                Upload your document in .docx or .pdf format to begin.
+                Upload your document in .docx format to begin.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -153,10 +174,10 @@ export function DashboardClientPage() {
                     <p className="mb-2 text-sm text-muted-foreground">
                       <span className="font-semibold text-primary">Click to upload</span> or drag and drop
                     </p>
-                    <p className="text-xs text-muted-foreground">DOCX or PDF</p>
+                    <p className="text-xs text-muted-foreground">DOCX only</p>
                     {documentFile && <p className="mt-4 text-sm font-medium text-primary">{documentFile.name}</p>}
                   </div>
-                  <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept=".docx,.pdf" />
+                  <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept=".docx" />
                 </label>
               </div>
             </CardContent>
