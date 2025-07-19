@@ -4,32 +4,31 @@ import type { ReformatCitationsInput, ReformatCitationsOutput } from "./reformat
 
 /**
  * @fileOverview A more intelligent mock implementation of the reformatCitations flow for testing purposes.
- * This mock simulates reordering citations and updating the bibliography.
+ * This mock simulates reordering citations and updating the bibliography based on the order of appearance in the text.
  */
 export async function mockReformatCitations(input: ReformatCitationsInput): Promise<ReformatCitationsOutput> {
   await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
 
-  // 1. Parse the user-provided references.
+  // 1. Parse the references provided by the user.
   const providedReferences = input.detectedReferences.trim().split('\n').filter(ref => ref.trim() !== '');
   
-  // 2. Extract original citations from the text, like "[1]", "[2]".
+  // 2. Find all unique citations in the document text, in their order of appearance.
   const citationRegex = /\[(\d+)\]/g;
-  const originalCitationsInText = [...input.documentText.matchAll(citationRegex)];
-  
-  // 3. Create a new bibliography and a mapping from the old citation number to the new one.
-  // In this mock, we'll re-number based on the order of references the user pasted.
+  const uniqueCitationsInOrder = [...new Set(Array.from(input.documentText.matchAll(citationRegex), m => parseInt(m[1])))];
+
+  // 3. Create the new bibliography using the user-provided references.
+  // We also create a map from the old citation number to its new number.
   const newBibliography: string[] = [];
   const oldToNewCitationMap: { [key: number]: number } = {};
 
-  // Create a mapping. For this mock, we assume the user provides references in the desired new order.
-  const uniqueOldCitationNumbers = [...new Set(originalCitationsInText.map(c => parseInt(c[1])))].sort((a, b) => a - b);
-  
-  uniqueOldCitationNumbers.forEach((oldNum, index) => {
+  uniqueCitationsInOrder.forEach((oldNum, index) => {
+    // Only map if there is a corresponding reference provided by the user.
     if (index < providedReferences.length) {
       const newNum = index + 1;
       oldToNewCitationMap[oldNum] = newNum;
+      
       // Use the actual reference text provided by the user for the new bibliography.
-      const refText = providedReferences[index].replace(/\[\d+\]\s*/, ''); // remove old numbering if present
+      const refText = providedReferences[index].replace(/^\[\d+\]\s*/, ''); // remove old numbering if present
       newBibliography.push(`[${newNum}] ${refText}`);
     }
   });
@@ -42,11 +41,13 @@ export async function mockReformatCitations(input: ReformatCitationsInput): Prom
     if (newNum !== undefined) {
       return `[${newNum}]`;
     }
-    return `[?]`; // Return '?' if we couldn't map this citation.
+    return `[?]`; // Return '?' if a citation was found in text but no corresponding reference was provided.
   });
 
   // 5. Assemble the final document.
-  const finalBibliography = `\n\nBibliography\n(Formatted in ${input.selectedCitationStyle} style - Mock)\n\n${newBibliography.join('\n')}`;
+  const finalBibliography = newBibliography.length > 0 
+    ? `\n\nBibliography\n(Formatted in ${input.selectedCitationStyle} style - Mock)\n\n${newBibliography.join('\n')}`
+    : '';
 
   return {
     reformattedDocument: `${renumberedText}${finalBibliography}`
