@@ -9,45 +9,47 @@ import type { ReformatCitationsInput, ReformatCitationsOutput } from "./reformat
 export async function mockReformatCitations(input: ReformatCitationsInput): Promise<ReformatCitationsOutput> {
   await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
 
-  // 1. Parse the references provided by the user.
-  const providedReferences = input.detectedReferences.trim().split('\n').filter(ref => ref.trim() !== '');
-  
-  // 2. Find all unique citations in the document text, in their order of appearance.
-  const citationRegex = /\[(\d+)\]/g;
-  const uniqueCitationsInOrder = [...new Set(Array.from(input.documentText.matchAll(citationRegex), m => parseInt(m[1])))];
+  const { documentText, detectedReferences, selectedCitationStyle } = input;
 
-  // 3. Create the new bibliography using the user-provided references.
-  // We also create a map from the old citation number to its new number.
+  // 1. Parse the provided references into an array.
+  const providedReferences = detectedReferences.trim().split('\n').filter(ref => ref.trim() !== '');
+
+  // 2. Find all unique citations in the document text, maintaining their order of first appearance.
+  const citationRegex = /\[(\d+)\]/g;
+  const oldCitationNumbersInOrder = [...new Set(Array.from(documentText.matchAll(citationRegex), m => parseInt(m[1])))];
+
+  // 3. Create the new bibliography and a map from old citation numbers to new ones.
+  // The new bibliography order is determined by the order of appearance in the text.
   const newBibliography: string[] = [];
   const oldToNewCitationMap: { [key: number]: number } = {};
+  
+  // We only create as many new bibliography entries as there are provided references.
+  const numCitationsToProcess = Math.min(oldCitationNumbersInOrder.length, providedReferences.length);
 
-  uniqueCitationsInOrder.forEach((oldNum, index) => {
-    // Check if there is a corresponding reference for the citation found in the text.
-    // The user might provide a list of references, and we map them in the order citations appear.
-    if (index < providedReferences.length) {
-      const newNum = index + 1;
-      oldToNewCitationMap[oldNum] = newNum;
-      
-      // Strip any existing numbering like "[1] " or "1. " from the provided reference text.
-      const refText = providedReferences[index].replace(/^\[\d+\]\s*|^\d+\.\s*/, '');
-      newBibliography.push(`[${newNum}] ${refText}`);
-    }
-  });
+  for (let i = 0; i < numCitationsToProcess; i++) {
+    const oldNum = oldCitationNumbersInOrder[i];
+    const newNum = i + 1;
+    oldToNewCitationMap[oldNum] = newNum;
+    
+    // Strip any existing numbering like "[1] " or "1. " from the provided reference text.
+    const refText = providedReferences[i].replace(/^\[\d+\]\s*|^\d+\.\s*/, '');
+    newBibliography.push(`[${newNum}] ${refText}`);
+  }
 
-
-  // 4. Replace the old citations in the text with the new, mapped numbers.
-  const renumberedText = input.documentText.replace(citationRegex, (match, oldNumStr) => {
+  // 4. Replace all occurrences of the old citations in the text with the new, mapped numbers.
+  const renumberedText = documentText.replace(citationRegex, (match, oldNumStr) => {
     const oldNum = parseInt(oldNumStr);
     const newNum = oldToNewCitationMap[oldNum];
     if (newNum !== undefined) {
       return `[${newNum}]`;
     }
-    return `[?]`; // Return '?' if a citation was found in text but no corresponding reference was provided.
+    // If a citation in the text doesn't have a corresponding provided reference, mark it as unresolved.
+    return `[?]`;
   });
 
   // 5. Assemble the final document.
-  const finalBibliography = newBibliography.length > 0 
-    ? `\n\nBibliography\n(Formatted in ${input.selectedCitationStyle} style - Mock)\n\n${newBibliography.join('\n')}`
+  const finalBibliography = newBibliography.length > 0
+    ? `\n\nBibliography\n(Formatted in ${selectedCitationStyle} style - Mock)\n\n${newBibliography.join('\n')}`
     : '';
 
   return {
