@@ -22,13 +22,14 @@ export async function mockReformatCitations(input: ReformatCitationsInput): Prom
   const oldToNewCitationMap: { [key: number]: number } = {};
 
   uniqueCitationsInOrder.forEach((oldNum, index) => {
-    // Only map if there is a corresponding reference provided by the user.
+    // Check if there is a corresponding reference for the citation found in the text.
+    // The user might provide a list of references, and we map them in the order citations appear.
     if (index < providedReferences.length) {
       const newNum = index + 1;
       oldToNewCitationMap[oldNum] = newNum;
       
-      // Use the actual reference text provided by the user for the new bibliography.
-      const refText = providedReferences[index].replace(/^\[\d+\]\s*/, ''); // remove old numbering if present
+      // Strip any existing numbering like "[1] " or "1. " from the provided reference text.
+      const refText = providedReferences[index].replace(/^\[\d+\]\s*|^\d+\.\s*/, '');
       newBibliography.push(`[${newNum}] ${refText}`);
     }
   });
