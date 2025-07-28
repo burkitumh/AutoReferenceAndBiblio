@@ -7,7 +7,8 @@
  * - ReformatCitationsOutput - The return type for the reformatCitations function.
  */
 
-import {ai} from '@/ai/genkit';
+import {genkit, type GenkitError} from 'genkit';
+import {googleAI} from '@genkit-ai/googleai';
 import {z} from 'genkit';
 import { mockReformatCitations } from './mock-reformat-citations';
 
@@ -19,6 +20,7 @@ const ReformatCitationsInputSchema = z.object({
     .string()
     .describe('The citation style to be used for reformatting (e.g., APA, MLA, Chicago).'),
   detectedReferences: z.string().describe('A list of references provided by the user, potentially from Zotero or Mendeley.'),
+  apiKey: z.string().optional().describe('The Gemini API key.'),
 });
 
 export type ReformatCitationsInput = z.infer<typeof ReformatCitationsInputSchema>;
@@ -33,17 +35,22 @@ export type ReformatCitationsOutput = z.infer<typeof ReformatCitationsOutputSche
 
 export async function reformatCitations(input: ReformatCitationsInput): Promise<ReformatCitationsOutput> {
   // If mock mode is enabled, return a mock response to allow UI testing without an API key.
-  if (process.env.MOCK_AI === 'true') {
+  if (process.env.NEXT_PUBLIC_MOCK_AI === 'true') {
     return mockReformatCitations(input);
   }
-  return reformatCitationsFlow(input);
-}
 
-const reformatCitationsPrompt = ai.definePrompt({
-  name: 'reformatCitationsPrompt',
-  input: {schema: ReformatCitationsInputSchema},
-  output: {schema: ReformatCitationsOutputSchema},
-  prompt: `You are an expert in academic writing and citation formatting. Your task is to reformat a given document by updating its in-text citations and generating a corresponding bibliography.
+  const {apiKey, ...promptData} = input;
+  
+  const ai = genkit({
+    plugins: [googleAI({apiKey})],
+    model: 'googleai/gemini-2.0-flash',
+  });
+
+  const reformatCitationsPrompt = ai.definePrompt({
+    name: 'reformatCitationsPrompt',
+    input: {schema: ReformatCitationsInputSchema.omit({apiKey: true})},
+    output: {schema: ReformatCitationsOutputSchema},
+    prompt: `You are an expert in academic writing and citation formatting. Your task is to reformat a given document by updating its in-text citations and generating a corresponding bibliography.
 
 You will receive the full 'Document Text', a list of 'Detected References', and a 'Selected Citation Style'.
 
@@ -64,16 +71,19 @@ Here is the selected citation style:
 
 Please provide the full, reformatted document.
   `,
-});
+  });
 
-const reformatCitationsFlow = ai.defineFlow(
-  {
-    name: 'reformatCitationsFlow',
-    inputSchema: ReformatCitationsInputSchema,
-    outputSchema: ReformatCitationsOutputSchema,
-  },
-  async input => {
-    const {output} = await reformatCitationsPrompt(input);
-    return output!;
-  }
-);
+  const reformatCitationsFlow = ai.defineFlow(
+    {
+      name: 'reformatCitationsFlow',
+      inputSchema: ReformatCitationsInputSchema,
+      outputSchema: ReformatCitationsOutputSchema,
+    },
+    async (flowInput) => {
+      const {output} = await reformatCitationsPrompt(promptData);
+      return output!;
+    }
+  );
+
+  return reformatCitationsFlow(input);
+}

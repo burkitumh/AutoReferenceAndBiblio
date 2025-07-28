@@ -105,6 +105,7 @@ export function DashboardClientPage() {
         documentText: documentText,
         detectedReferences: referencesText,
         selectedCitationStyle: selectedStyle,
+        apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY
       })
       setReformattedText(result.reformattedDocument)
       setStep('result')
