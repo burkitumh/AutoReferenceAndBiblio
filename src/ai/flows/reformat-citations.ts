@@ -1,4 +1,4 @@
-// 'use server';
+'use server';
 /**
  * @fileOverview Reformats citations in a document according to a selected style.
  *
@@ -6,8 +6,6 @@
  * - ReformatCitationsInput - The input type for the reformatCitations function.
  * - ReformatCitationsOutput - The return type for the reformatCitations function.
  */
-
-'use server';
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
